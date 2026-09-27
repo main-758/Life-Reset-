@@ -43,50 +43,70 @@
 <script src="config.js"></script>
 <script>
 let supabaseClient=null, authMode=new URLSearchParams(location.search).get('mode')==='signup'?'signup':'signin';
-function mode(x){authMode=x;document.getElementById('signInTab').classList.toggle('active',x==='signin');document.getElementById('signUpTab').classList.toggle('active',x==='signup');document.getElementById('nameField').classList.toggle('hide',x!=='signup');document.getElementById('title').textContent=x==='signup'?'Create your account':'Welcome back';document.getElementById('subtitle').textContent=x==='signup'?'Start your private Life Reset workspace.':'Sign in to continue to your Life Reset dashboard.';document.getElementById('submit').textContent=x==='signup'?'Create account':'Sign in';document.getElementById('password').autocomplete=x==='signup'?'new-password':'current-password';document.getElementById('msg').textContent='';}
-function say(t,ok=false){const m=document.getElementById('msg');m.textContent=t;m.className='msg'+(ok?' success':'')}
+function mode(x){
+  authMode=x;
+  document.getElementById('signInTab').classList.toggle('active',x==='signin');
+  document.getElementById('signUpTab').classList.toggle('active',x==='signup');
+  document.getElementById('nameField').classList.toggle('hide',x!=='signup');
+  document.getElementById('title').textContent=x==='signup'?'Create your account':'Welcome back';
+  document.getElementById('subtitle').textContent=x==='signup'?'Start your private Life Reset workspace.':'Sign in to continue to your Life Reset dashboard.';
+  document.getElementById('submit').textContent=x==='signup'?'Create account':'Sign in';
+  document.getElementById('password').autocomplete=x==='signup'?'new-password':'current-password';
+  document.getElementById('msg').textContent='';
+}
+function say(t,ok=false){const m=document.getElementById('msg');m.textContent=t;m.className='msg'+(ok?' success':'');}
+function appUrl(){return (window.LIFE_RESET_CONFIG.APP_URL||location.origin+'/').replace(/\/$/,'')+'/';}
 async function start(){
   mode(authMode);
   try{
-    if(!window.LIFE_RESET_CONFIG||!window.LIFE_RESET_CONFIG.SUPABASE_URL||!window.LIFE_RESET_CONFIG.SUPABASE_ANON_KEY) throw new Error('Account service is not configured.');
+    if(!window.LIFE_RESET_CONFIG) throw new Error('Life Reset account settings are missing.');
     supabaseClient=window.supabase.createClient(window.LIFE_RESET_CONFIG.SUPABASE_URL,window.LIFE_RESET_CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-    const r=await supabaseClient.auth.getSession();
-    if(r.error) throw r.error;
-    if(r.data.session){
-      document.getElementById('formView').innerHTML='<div class="eyebrow">ACCOUNT FOUND</div><h2>You are already signed in.</h2><div class="sub">Your Life Reset account is active in this browser. Open the app, or sign out to use a different account.</div><button class="btn primary" onclick="location.href=window.LIFE_RESET_CONFIG.APP_URL||\'index.html\'">Open Life Reset</button><button class="btn ghost" onclick="switchAccount()">Sign out & switch account</button>';
-      return;
+    const {data,error}=await supabaseClient.auth.getSession();
+    if(error)throw error;
+    if(data.session){
+      document.getElementById('formView').innerHTML='<div class="eyebrow">ACCOUNT FOUND</div><h2>You are already signed in.</h2><div class="sub">This browser already has an active Life Reset session.</div><button class="btn primary" onclick="location.href=appUrl()">Open Life Reset</button><button class="btn ghost" onclick="switchAccount()">Sign out & switch account</button>';
     }
-    supabaseClient.auth.onAuthStateChange((event,s)=>{
-      if(event==='SIGNED_IN'&&s){
-        location.href=window.LIFE_RESET_CONFIG.APP_URL||'index.html';
-      }
-    });
-  }catch(e){say(e?.message||'Life Reset could not connect to your account service.');}
+  }catch(e){say(e?.message||'Account service could not be loaded.');}
 }
-async function switchAccount(){
-  try{
-    if(supabaseClient) await supabaseClient.auth.signOut();
-    location.reload();
-  }catch(e){say(e?.message||'Could not sign out. Please refresh and try again.');}
-}
+async function switchAccount(){try{await supabaseClient?.auth.signOut();location.reload();}catch(e){say(e?.message||'Could not switch accounts.');}}
 async function submitAuth(){
-const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value,name=document.getElementById('name').value.trim(),btn=document.getElementById('submit');
-if(!email||!password){say('Enter your email and password.');return}
-if(authMode==='signup'&&password.length<6){say('Your password must be at least 6 characters.');return}
-btn.disabled=true;btn.textContent=authMode==='signup'?'Creating your account…':'Signing you in…';say('');
-try{
-if(authMode==='signup'){
-const r=await supabaseClient.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:window.LIFE_RESET_CONFIG.APP_URL||location.origin+'/'}})
-if(r.error)throw r.error;
-if(r.data.session){location.href=window.LIFE_RESET_CONFIG.APP_URL||'index.html';return}
-document.getElementById('formView').classList.add('hide');document.getElementById('successView').classList.remove('hide');
-}else{
-const r=await supabaseClient.auth.signInWithPassword({email,password});if(r.error)throw r.error;location.href=window.LIFE_RESET_CONFIG.APP_URL||'index.html';
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value;
+  const name=(document.getElementById('name')?.value||'').trim();
+  const btn=document.getElementById('submit');
+  if(!email||!password){say('Enter your email and password.');return;}
+  if(authMode==='signup'&&password.length<6){say('Your password must be at least 6 characters.');return;}
+  btn.disabled=true;btn.textContent=authMode==='signup'?'Creating account…':'Signing in…';say('');
+  try{
+    const base=window.LIFE_RESET_CONFIG.SUPABASE_URL;
+    const key=window.LIFE_RESET_CONFIG.SUPABASE_ANON_KEY;
+    const endpoint=authMode==='signup'?base+'/auth/v1/signup':base+'/auth/v1/token?grant_type=password';
+    const payload=authMode==='signup'
+      ?{email,password,data:{full_name:name}}
+      :{email,password};
+    const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','apikey':key},body:JSON.stringify(payload)});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.msg||data.error_description||data.message||'Authentication failed.');
+    if(authMode==='signup'){
+      if(data.access_token&&data.refresh_token){
+        await supabaseClient.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
+        say('Account created. Opening Life Reset…',true);
+        setTimeout(()=>location.href=appUrl(),150);
+      }else{
+        document.getElementById('formView').classList.add('hide');
+        document.getElementById('successView').classList.remove('hide');
+      }
+    }else{
+      if(!data.access_token||!data.refresh_token) throw new Error('Login succeeded but no session was returned. Please try again.');
+      const s=await supabaseClient.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
+      if(s.error)throw s.error;
+      say('Signed in. Opening your Life Reset…',true);
+      setTimeout(()=>location.href=appUrl(),150);
+    }
+  }catch(e){console.error(e);say(e?.message||'Something went wrong. Please try again.');}
+  finally{btn.disabled=false;btn.textContent=authMode==='signup'?'Create account':'Sign in';}
 }
-}catch(e){say(e?.message||'Something went wrong. Please try again.')}
-finally{btn.disabled=false;btn.textContent=authMode==='signup'?'Create account':'Sign in'}
-}
-start().catch(e=>say('Life Reset could not connect to your account service. Refresh and try again.'));
+start();
 </script>
 </body>
 </html>
