@@ -42,10 +42,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script>
-let supabaseClient=null, authMode='signin';
+=null, authMode=new URLSearchParams(location.search).get('mode')==='signup'?'signup':'signin';
 function mode(x){authMode=x;document.getElementById('signInTab').classList.toggle('active',x==='signin');document.getElementById('signUpTab').classList.toggle('active',x==='signup');document.getElementById('nameField').classList.toggle('hide',x!=='signup');document.getElementById('title').textContent=x==='signup'?'Create your account':'Welcome back';document.getElementById('subtitle').textContent=x==='signup'?'Start your private Life Reset workspace.':'Sign in to continue to your Life Reset dashboard.';document.getElementById('submit').textContent=x==='signup'?'Create account':'Sign in';document.getElementById('password').autocomplete=x==='signup'?'new-password':'current-password';document.getElementById('msg').textContent='';}
 function say(t,ok=false){const m=document.getElementById('msg');m.textContent=t;m.className='msg'+(ok?' success':'')}
-async function start(){supabaseClient=window.supabase.createClient(window.LIFE_RESET_CONFIG.SUPABASE_URL,window.LIFE_RESET_CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data}=await supabaseClient.auth.getSession();if(data.session){location.href=window.LIFE_RESET_CONFIG.APP_URL||'index.html';return}supabaseClient.auth.onAuthStateChange((_e,s)=>{if(s)location.href=window.LIFE_RESET_CONFIG.APP_URL||'index.html'});}
+async function start(){mode(authMode);supabaseClient=window.supabase.createClient(window.LIFE_RESET_CONFIG.SUPABASE_URL,window.LIFE_RESET_CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data}=await supabaseClient.auth.getSession();if(data.session){location.href=window.LIFE_RESET_CONFIG.APP_URL||'index.html';return}supabaseClient.auth.onAuthStateChange((_e,s)=>{if(s)location.href=window.LIFE_RESET_CONFIG.APP_URL||'index.html'});}
 async function submitAuth(){
 const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value,name=document.getElementById('name').value.trim(),btn=document.getElementById('submit');
 if(!email||!password){say('Enter your email and password.');return}
