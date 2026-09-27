@@ -1,0 +1,1 @@
+window.LIFE_RESET_CONFIG={SUPABASE_URL:"https://kkqmthgyzlzkytydccgk.supabase.co",SUPABASE_ANON_KEY:"sb_publishable_dC7U8MgZKBt-yVaoCw7Tjw_G6lunlXq",LEMON_CHECKOUT_URL:"YOUR_LEMON_SQUEEZY_CHECKOUT_URL",APP_URL:"https://main-758.github.io/Life-Reset-"};
