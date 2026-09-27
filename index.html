@@ -24,7 +24,7 @@
 <body>
 <div class="app">
 <aside class="side"><div class="logo">Life <span>Reset</span></div><div style="margin:-10px 0 16px;padding:0 4px"><div class="small" style="color:#9e9aa9">Your space to reset, refocus and move forward.</div></div><div class="nav" id="nav"></div><div class="sideProfile"><div class="row"><div class="avatar" id="avatar">LR</div><div><b id="sideName">Your Life</b><div class="small" style="color:#aaa8b7">Personal plan</div></div></div></div></aside>
-<main class="main"><div class="mobile"><b>Life <span style="color:#a998ff">Reset</span></b><div class="accountBar"><button class="accountBtn primary" id="mobileAccountBtn" onclick="window.openAccountCenter()">Sign in</button><button class="btn dark" onclick="openMobile()">☰</button></div></div>
+<main class="main"><div class="mobile"><b>Life <span style="color:#a998ff">Reset</span></b><div class="accountBar"><button class="accountBtn primary" id="mobileAccountBtn" onclick="location.href='auth.html?mode=signin'">Sign in</button><button class="btn dark" onclick="openMobile()">☰</button></div></div>
 <section id="dashboard" class="view active"></section><section id="today" class="view"></section><section id="brain" class="view"></section><section id="money" class="view"></section><section id="career" class="view"></section><section id="goals" class="view"></section><section id="progress" class="view"></section><section id="calendar" class="view"></section><section id="premium" class="view"></section><section id="contact" class="view"></section><section id="settings" class="view"></section>
 </main></div>
 <div class="modal" id="modal"><div class="modalCard" id="modalCard"></div></div><div class="toast" id="toast"></div>
@@ -81,4 +81,28 @@ function openMobile(){openModal('Life Reset',NAV.map(([id,ic,label])=>`<button c
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)}
 render();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="backend.js"></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="backend.js"></script><script>
+window.openAccountCenter=function(){location.href='auth.html?mode=signin'};
+window.authLR=function(signup){location.href='auth.html?mode='+(signup?'signup':'signin')};
+window.openPlus=function(){
+  const cfg=window.LIFE_RESET_CONFIG||{};
+  if(!window.__lrSignedIn){location.href='auth.html?mode=signin';return}
+  const modal=document.getElementById('modal'), card=document.getElementById('modalCard');
+  if(modal&&card){
+    card.innerHTML='<div class="authHero"><div class="eyebrow">LIFE RESET PLUS</div><h2 style="font-size:30px;margin:8px 0">Build a calmer, more organized life.</h2><p class="muted">Unlock unlimited planning, cloud sync, advanced insights and an ad-free experience.</p><div class="price">$7.99 <span style="font-size:15px;font-weight:700">/ month</span></div><div class="notice" style="margin-top:15px"><b>Secure checkout</b><br>Choose how you want to pay.</div><button class="btn primary" style="width:100%;margin-top:18px" onclick="window.startStripeCheckout()">Continue with Stripe</button><button class="btn" style="width:100%;margin-top:10px" onclick="window.startPayPalCheckout()">Pay with PayPal</button><button class="btn" style="width:100%;margin-top:8px" onclick="closeModal()">Not now</button>';
+    modal.classList.add('open');
+  }
+};
+window.startPayPalCheckout=function(){const u=(window.LIFE_RESET_CONFIG||{}).PAYPAL_PLUS_LINK;if(!u){alert('PayPal payment link is not connected yet.');return}location.href=u};
+window.startStripeCheckout=async function(){
+  const cfg=window.LIFE_RESET_CONFIG||{};
+  if(!window.supabase){alert('Please refresh and try again.');return}
+  const {data:{session}}=await window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY).auth.getSession();
+  if(!session){location.href='auth.html?mode=signin';return}
+  if(!cfg.STRIPE_CHECKOUT_FUNCTION){alert('Stripe checkout is not connected yet.');return}
+  const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
+  const r=await sb.functions.invoke(cfg.STRIPE_CHECKOUT_FUNCTION,{body:{price_id:cfg.STRIPE_PRICE_ID}});
+  if(r.error){alert(r.error.message||'Stripe checkout could not open.');return}
+  if(r.data&&r.data.url)location.href=r.data.url;else alert('Stripe checkout did not return a payment page.');
+};
+</script></body></html>
