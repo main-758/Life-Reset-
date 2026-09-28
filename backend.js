@@ -78,14 +78,14 @@ async function boot(){
     window.LR_SUPABASE=sb;
     sb.auth.onAuthStateChange(function(event,next){
       session=next||null;
-      if(event==="SIGNED_OUT"){profile=null;state=guest();renderAccountUI();render();return;}
+      if(event==="SIGNED_OUT"){profile=null;state={...state,user:{name:"",email:"",plan:"free"}};localStorage.setItem("lifeReset3",JSON.stringify(state));renderAccountUI();render();return;}
       if(event==="PASSWORD_RECOVERY"){location.replace("auth.html?mode=reset"+location.search+location.hash);return;}
       if(next)setTimeout(function(){loadUser(next.user).catch(function(e){console.error(e);});},0);
     });
     var r=await sb.auth.getSession();
     session=r.data.session||null;
     if(session)await loadUser(session.user);
-    else { state={...guest(),...state}; renderAccountUI(); render(); }
+    else { state={...state,user:{name:"",email:"",plan:"free"}}; localStorage.setItem("lifeReset3",JSON.stringify(state)); renderAccountUI(); render(); }
   }catch(e){console.error(e);renderAccountUI();render();}
 }
 
