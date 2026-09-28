@@ -8,7 +8,7 @@ function plus(){return !!profile&&["active","on_trial","trialing"].indexOf(profi
 function syncHeader(){
  var b=document.querySelector(".sideProfile");
  if(b&&session){var n=state.user.name||profile?.full_name||"Your account";b.innerHTML='<div class="row"><div class="avatar">'+escA(n.slice(0,2).toUpperCase())+'</div><div><b>'+escA(n)+'</b><div class="small">'+(plus()?"Plus member":"Free plan")+'</div></div></div><div class="row" style="margin-top:10px"><button class="btn dark" onclick="window.openAccount()">Account</button><button class="btn dark" onclick="window.signOutLR()">Sign out</button></div>';}
- var m=document.getElementById("mobileAccountBtn");if(m){m.textContent=session?"Account":"Sign in";m.onclick=session?window.openAccount:window.openAccountCenter;}
+ var m=document.getElementById("mobileAccountBtn");if(m){m.textContent=session?"Account":"Sign in";m.onclick=session?window.openAccount:function(){window.openAccountCenter()};}
 }
 function accountButton(){return session?'<button class="accountBtn" onclick="window.openAccount()">Account</button>':'<button class="accountBtn primary" onclick="window.openAccountCenter()">Sign in / Create account</button>'}
 async function loadUser(u){
@@ -16,7 +16,7 @@ async function loadUser(u){
  if(!profile){var ins=await sb.from("profiles").upsert({id:u.id,email:u.email||"",full_name:u.user_metadata?.full_name||""},{onConflict:"id"});if(ins.error)throw ins.error;var pp=await sb.from("profiles").select("*").eq("id",u.id).maybeSingle();profile=pp.data;}
  var d=await sb.from("life_data").select("data").eq("user_id",u.id).maybeSingle();if(d.error)throw d.error;
  var cloud=d.data?.data||{};state={...guest(),...cloud,user:{...guest().user,...(cloud.user||{})}};state.user.name=profile?.full_name||u.user_metadata?.full_name||state.user.name;state.user.email=u.email||profile?.email||state.user.email;state.user.plan=plus()?"plus":"free";
- syncHeader();render();
+ setTimeout(function(){syncHeader();render();},0);
 }
 async function initAccount(){
  try{
