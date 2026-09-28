@@ -22,7 +22,7 @@ async function initAccount(){
  try{
   sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   var r=await sb.auth.getSession();session=r.data.session;
-  if(!session){location.replace("auth.html?mode=signin");return;}
+  if(!session){return;}
   await loadUser(session.user);
   sb.auth.onAuthStateChange(function(ev,s){session=s;if(ev==="SIGNED_OUT"){profile=null;state=guest();location.replace("auth.html?mode=signin");return;}if(s)setTimeout(function(){loadUser(s.user).catch(console.error)},0);});
  }catch(e){console.error(e);alert(e?.message||"Life Reset could not connect to your account.");}
