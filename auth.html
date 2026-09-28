@@ -30,7 +30,7 @@ async function submitAuth(){
  }catch(e){console.error(e);say(e&&e.message?e.message:"Authentication failed.");}
  finally{button.disabled=false;button.textContent=authMode==="signup"?"Create account":"Sign in";}
 }
-function resetRedirectUrl(){return appUrl();}
+function resetRedirectUrl(){return appUrl()+"auth.html?mode=reset";}
 function showForgot(){document.getElementById("formView").classList.add("hidden");document.getElementById("forgotView").classList.remove("hidden");document.getElementById("resetEmail").value=document.getElementById("email").value.trim();document.getElementById("resetMsg").textContent="";setTimeout(function(){document.getElementById("resetEmail").focus()},50);}
 function backToSignIn(){history.replaceState({},document.title,"auth.html?mode=signin");document.getElementById("forgotView").classList.add("hidden");document.getElementById("updateView").classList.add("hidden");document.getElementById("formView").classList.remove("hidden");mode("signin");}
 function resetSay(t,ok){var m=document.getElementById("resetMsg");m.textContent=t||"";m.className=ok?"msg ok":"msg";}
