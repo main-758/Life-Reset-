@@ -43,6 +43,9 @@ async function loadUser(user){
   if(d.error)throw d.error;
   var cloud=d.data?.data||{};
   state={...guest(),...cloud,user:{...guest().user,...(cloud.user||{})}};
+  state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+  state.goals=Array.isArray(state.goals)?state.goals:[];
+  state.history=Array.isArray(state.history)?state.history:[];
   state.user.name=profile?.full_name||user.user_metadata?.full_name||state.user.name;
   state.user.email=user.email||profile?.email||state.user.email;
   state.user.plan=isPlus()?"plus":"free";
@@ -53,11 +56,17 @@ async function loadUser(user){
   renderAccountUI();
   render();
 }
+var cloudSaveQueue=Promise.resolve();
 async function saveCloud(){
   if(!sb||!session)return;
-  var r=await sb.from("life_data").upsert({user_id:session.user.id,data:state,updated_at:new Date().toISOString()},{onConflict:"user_id"});
-  if(r.error)throw r.error;
-  localStorage.setItem("lifeReset3",JSON.stringify(state));
+  var snapshot=JSON.parse(JSON.stringify(state));
+  var userId=session.user.id;
+  cloudSaveQueue=cloudSaveQueue.then(async function(){
+    var r=await sb.from("life_data").upsert({user_id:userId,data:snapshot,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    if(r.error)throw r.error;
+    localStorage.setItem("lifeReset3",JSON.stringify(snapshot));
+  });
+  return cloudSaveQueue;
 }
 async function boot(){
   try{
@@ -108,7 +117,7 @@ window.submitAuthModal=async function(signup){
     if(r.data.session){closeModal();showMessage(signup?"Account created. Welcome to Life Reset!":"Welcome back!");}
   }catch(e){if(msg)msg.textContent=e?.message||"Authentication failed.";}
 };
-window.signOutLR=async function(){if(!sb)return;var r=await sb.auth.signOut();if(r.error)showMessage(r.error.message);};
+window.signOutLR=async function(){if(!sb)return;try{if(session)await saveCloud();var r=await sb.auth.signOut();if(r.error)throw r.error;showMessage("Signed out. Your latest changes were saved.");}catch(e){console.error(e);showMessage(e?.message||"Could not sign out safely. Your latest changes may still be saving.");}};
 window.save=async function(){render();try{await saveCloud();showMessage("Saved to your Life Reset account.");}catch(e){console.error(e);showMessage("Saved on this device. Cloud sync needs attention.");}};
 window.saveProfile=async function(){
   if(!session){window.openAuth(0);return;}
