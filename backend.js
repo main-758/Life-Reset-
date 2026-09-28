@@ -133,12 +133,9 @@ window.openPlus=function(){
   if(!session){window.openAuth(0);return;}
   if(isPlus()){window.openAccount();return;}
   var paypal=cfg.PAYPAL_PLUS_LINK||"";
-  var html='<div class="sectionHead"><div><div class="eyebrow">LIFE RESET PLUS</div><h2>$7.99/month</h2></div><button class="btn" onclick="closeModal()">×</button></div><p class="muted">Unlimited planning, cloud sync, advanced insights and an ad-free experience.</p><div class="grid g2" style="margin-top:18px"><button class="btn primary" onclick="window.startStripeCheckout()">Continue with Stripe</button>'+ (paypal?'<a class="btn" style="text-align:center;text-decoration:none;background:#f3f0f7;color:#191522" href="'+escA(paypal)+'" target="_blank" rel="noopener">Pay with PayPal</a>':'')+'</div>';
+  var html='<div class="sectionHead"><div><div class="eyebrow">LIFE RESET PLUS</div><h2>$7.99/month</h2></div><button class="btn" onclick="closeModal()">×</button></div><p class="muted">Unlimited planning, cloud sync, advanced insights and an ad-free experience.</p><div class="notice" style="margin-top:16px"><b>Pay with PayPal</b><br>Your Plus subscription will be handled securely by PayPal.</div>'+(paypal?'<a class="btn primary" style="display:block;width:100%;margin-top:16px;text-align:center;text-decoration:none" href="'+escA(paypal)+'" target="_blank" rel="noopener noreferrer">Continue with PayPal</a>':'<div class="msg" style="margin-top:14px">PayPal checkout link is not connected yet.</div>')+'<button class="btn" style="width:100%;margin-top:10px" onclick="closeModal()">Not now</button>';
   document.getElementById("modalCard").innerHTML=html;document.getElementById("modal").classList.add("open");
 };
-window.startStripeCheckout=async function(){
-  if(!session){window.openAuth(0);return;}
-  try{var r=await sb.functions.invoke(cfg.STRIPE_CHECKOUT_FUNCTION||"stripe-checkout",{body:{price_id:cfg.STRIPE_PRICE_ID}});if(r.error)throw r.error;if(!r.data?.url)throw new Error(r.data?.error||"Stripe checkout is not available yet.");location.href=r.data.url;}catch(e){showMessage(e?.message||"Stripe checkout could not open.");}
-};
+;
 boot();
 })();
