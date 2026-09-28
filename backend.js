@@ -70,18 +70,22 @@ async function saveCloud(){
 }
 async function boot(){
   try{
+    if(/(?:^|[&#])type=recovery(?:&|#|$)/.test(location.hash.slice(1)) || new URLSearchParams(location.search).get("type")==="recovery"){
+      location.replace("auth.html?mode=reset"+location.search+location.hash);
+      return;
+    }
     sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     window.LR_SUPABASE=sb;
+    sb.auth.onAuthStateChange(function(event,next){
+      session=next||null;
+      if(event==="SIGNED_OUT"){profile=null;state=guest();renderAccountUI();render();return;}
+      if(event==="PASSWORD_RECOVERY"){location.replace("auth.html?mode=reset"+location.search+location.hash);return;}
+      if(next)setTimeout(function(){loadUser(next.user).catch(function(e){console.error(e);});},0);
+    });
     var r=await sb.auth.getSession();
     session=r.data.session||null;
     if(session)await loadUser(session.user);
     else { state={...guest(),...state}; renderAccountUI(); render(); }
-    sb.auth.onAuthStateChange(function(event,next){
-      session=next||null;
-      if(event==="SIGNED_OUT"){profile=null;state=guest();renderAccountUI();render();return;}
-      if(event==="PASSWORD_RECOVERY"){location.href="auth.html?mode=reset";return;}
-      if(next)setTimeout(function(){loadUser(next.user).catch(function(e){console.error(e);});},0);
-    });
   }catch(e){console.error(e);renderAccountUI();render();}
 }
 
