@@ -79,6 +79,7 @@ async function boot(){
     sb.auth.onAuthStateChange(function(event,next){
       session=next||null;
       if(event==="SIGNED_OUT"){profile=null;state=guest();renderAccountUI();render();return;}
+      if(event==="PASSWORD_RECOVERY"){location.href="auth.html?mode=reset";return;}
       if(next)setTimeout(function(){loadUser(next.user).catch(function(e){console.error(e);});},0);
     });
   }catch(e){console.error(e);renderAccountUI();render();}
