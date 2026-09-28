@@ -20,7 +20,7 @@ async function loadUser(u){
 }
 async function initAccount(){
  try{
-  sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});window.LR_SUPABASE=sb;
   var r=await sb.auth.getSession();session=r.data.session;
   if(!session){return;}
   await loadUser(session.user);
