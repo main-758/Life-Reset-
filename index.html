@@ -31,7 +31,7 @@
 <script>
 const KEY='lifeReset3';
 const NAV=[['dashboard','⌂','Dashboard'],['today','✓','Today'],['brain','✦','Brain Dump'],['money','$','Money Reset'],['career','↗','Career'],['goals','◎','Goals'],['progress','▥','Progress'],['calendar','□','Calendar'],['premium','★','Plus'],['contact','✉','Contact Us'],['settings','⚙','Settings']];
-let state=JSON.parse(localStorage.getItem(KEY)||'null')||{user:{name:'',email:''},tasks:[],brain:'',bills:[],income:[],applications:[],goals:[],history:[],settings:{dark:false}};
+let state={user:{name:'',email:'',plan:'free'},tasks:[],brain:'',bills:[],income:[],applications:[],goals:[],history:[],settings:{dark:false}};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}function hasPlus(){return state.user&&state.user.plan==='plus'}
 function requirePlus(feature){if(hasPlus())return true;openModal('Life Reset Plus',`<div class="premium" style="border-radius:18px;padding:20px"><div class="eyebrow" style="color:#b9aaff">PLUS FEATURE</div><h2 style="margin-top:7px">${esc(feature)}</h2><p class="muted">This is one of Life Reset's advanced planning tools. Free members can use the core tools; Plus unlocks the deeper planning and insight layer.</p><div class="row" style="margin-top:16px"><button class="btn primary" onclick="closeModal();window.openPlus()">Unlock Plus — $7.99/month</button><button class="btn" onclick="closeModal()">Not now</button></div></div>`);return false}
