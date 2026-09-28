@@ -96,9 +96,30 @@ window.openAuth=function(signup){
     '<div class="field"><label>Password</label><input id="ap" type="password" autocomplete="'+(signup?"new-password":"current-password")+'" placeholder="At least 6 characters"></div>'+
     '<div id="ax" class="small" style="min-height:22px;margin-top:10px"></div>'+
     '<button class="btn primary" style="width:100%;margin-top:16px" onclick="window.submitAuthModal('+!!signup+')">'+mode+'</button>'+
+    (!signup?'<div style="text-align:right;margin-top:10px"><button class="btn" style="border:0;background:none;padding:0;color:var(--brand);font-weight:900" onclick="window.showResetPassword()">Forgot password?</button></div>':'')+
     '<div class="row" style="justify-content:center;margin-top:12px"><button class="btn" onclick="window.openAuth('+(!signup)+');"> '+(signup?"I already have an account":"Create an account")+' </button></div>'+
     '<div class="small">Use your same account on every device to restore your saved Life Reset data.</div>';
   if(typeof openModal==="function")openModal(mode,body);else location.href="auth.html?mode="+(signup?"signup":"signin");
+};
+window.showResetPassword=function(){
+  var email=document.getElementById("ae")?.value.trim()||"";
+  var body='<div class="sectionHead"><div><div class="eyebrow">PASSWORD RECOVERY</div><h2>Reset your password</h2></div><button class="btn" onclick="closeModal()">×</button></div>'+
+    '<p class="muted">Enter your email and we’ll send you a secure password reset link.</p>'+
+    '<div class="field"><label>Email</label><input id="resetEmail" type="email" autocomplete="email" placeholder="you@example.com" value="'+escA(email)+'"></div>'+
+    '<div id="resetMsg" class="small" style="min-height:22px;margin-top:10px"></div>'+
+    '<button class="btn primary" style="width:100%;margin-top:16px" onclick="window.sendResetPassword()">Send reset link</button>'+
+    '<button class="btn" style="width:100%;margin-top:10px" onclick="window.openAuth(0)">Back to sign in</button>';
+  openModal("Reset your password",body);
+};
+window.sendResetPassword=async function(){
+  var email=document.getElementById("resetEmail")?.value.trim(),msg=document.getElementById("resetMsg");
+  if(!email){if(msg)msg.textContent="Enter your email address.";return;}
+  if(msg)msg.textContent="Sending reset link...";
+  try{
+    var r=await sb.auth.resetPasswordForEmail(email,{redirectTo:cfg.APP_URL});
+    if(r.error)throw r.error;
+    if(msg)msg.textContent="Reset link sent. Check your email.";
+  }catch(e){if(msg)msg.textContent=e?.message||"Could not send the reset link.";}
 };
 window.submitAuthModal=async function(signup){
   var msg=document.getElementById("ax"),email=document.getElementById("ae")?.value.trim(),pw=document.getElementById("ap")?.value||"",name=document.getElementById("an")?.value.trim()||"";
