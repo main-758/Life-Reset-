@@ -160,6 +160,7 @@ window.openAccount=function(){
   var html='<div class="sectionHead"><div><div class="eyebrow">ACCOUNT</div><h2>'+escA(n)+'</h2></div><button class="btn" onclick="closeModal()">×</button></div><div class="notice"><b>'+ (isPlus()?"Plus":"Free") +' plan</b><br>'+escA(state.user.email)+'</div><p class="muted" style="margin-top:14px">Your Life Reset plans and progress are linked to this account and saved in the cloud.</p>'+(isPlus()?'<div class="small">Life Reset Plus is active.</div>':'<button class="btn primary" style="width:100%;margin-top:14px" onclick="closeModal();window.openPlus()">Get Plus — $7.99/month</button>')+'<button class="btn dark" style="width:100%;margin-top:10px" onclick="window.signOutLR()">Sign out</button>';
   document.getElementById("modalCard").innerHTML=html;document.getElementById("modal").classList.add("open");
 };
+window.startPayPalCheckout=function(){window.openPlus();};
 window.openPlus=function(){
   if(!session){window.openAuth(0);return;}
   if(isPlus()){window.openAccount();return;}
