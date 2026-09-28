@@ -78,7 +78,7 @@ function resetAll(){if(confirm('Delete all Life Reset data from this browser?'))
 function openModal(title,body,action=''){document.getElementById('modalCard').innerHTML=`<div class="sectionHead"><h2>${title}</h2><button class="btn" onclick="closeModal()">×</button></div>${body}${action?`<div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="${action}">Save</button></div>`:''}`;document.getElementById('modal').classList.add('open');setTimeout(()=>document.querySelector('#modal input')?.focus(),50)}
 function closeModal(){document.getElementById('modal').classList.remove('open')}
 function openMobile(){openModal('Life Reset',NAV.map(([id,ic,label])=>`<button class="btn" style="width:100%;text-align:left;margin:4px 0" onclick="closeModal();go('${id}')">${ic}&nbsp;&nbsp;${label}</button>`).join(''))}
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)}
+function toast(msg){const t=document.getElementById('toast');if(!t)return; t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)}
 render();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="backend.js"></script></body></html>
