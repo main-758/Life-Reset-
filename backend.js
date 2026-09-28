@@ -105,16 +105,7 @@ window.openAuth=function(signup){
     '<div class="small">Use your same account on every device to restore your saved Life Reset data.</div>';
   if(typeof openModal==="function")openModal(mode,body);else location.href="auth.html?mode="+(signup?"signup":"signin");
 };
-window.showResetPassword=function(){
-  var email=document.getElementById("ae")?.value.trim()||"";
-  var body='<div class="sectionHead"><div><div class="eyebrow">PASSWORD RECOVERY</div><h2>Reset your password</h2></div><button class="btn" onclick="closeModal()">×</button></div>'+
-    '<p class="muted">Enter your email and we’ll send you a secure password reset link.</p>'+
-    '<div class="field"><label>Email</label><input id="resetEmail" type="email" autocomplete="email" placeholder="you@example.com" value="'+escA(email)+'"></div>'+
-    '<div id="resetMsg" class="small" style="min-height:22px;margin-top:10px"></div>'+
-    '<button class="btn primary" style="width:100%;margin-top:16px" onclick="window.sendResetPassword()">Send reset link</button>'+
-    '<button class="btn" style="width:100%;margin-top:10px" onclick="window.openAuth(0)">Back to sign in</button>';
-  openModal("Reset your password",body);
-};
+window.showResetPassword=function(){location.href="https://docs.google.com/forms/d/e/1FAIpQLSewfuoKEirB6ikGXLc6qHq5QIrnA0HxlkrN5Kf7o1_E55ypXw/viewform?usp=header";};
 window.sendResetPassword=async function(){
   var email=document.getElementById("resetEmail")?.value.trim(),msg=document.getElementById("resetMsg");
   if(!email){if(msg)msg.textContent="Enter your email address.";return;}
