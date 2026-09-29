@@ -34,7 +34,7 @@
 <script>
 const KEY='lifeReset3';
 const NAV=[['dashboard','⌂','Dashboard'],['today','✓','Today'],['brain','✦','Brain Dump'],['money','$','Money Reset'],['career','↗','Career'],['goals','◎','Goals'],['progress','▥','Progress'],['calendar','□','Calendar'],['premium','★','Plus'],['contact','✉','Contact Us'],['settings','⚙','Settings']];
-let state={user:{name:'',email:'',plan:'free'},tasks:[],brain:'',bills:[],income:[],applications:[],goals:[],history:[],settings:{dark:false}};
+var state={user:{name:'',email:'',plan:'free'},tasks:[],brain:'',bills:[],income:[],applications:[],goals:[],history:[],settings:{dark:false}};
 try{const saved=localStorage.getItem(KEY);if(saved){const parsed=JSON.parse(saved);state={...state,...parsed,user:{...state.user,...(parsed.user||{})},tasks:Array.isArray(parsed.tasks)?parsed.tasks:[],goals:Array.isArray(parsed.goals)?parsed.goals:[],history:Array.isArray(parsed.history)?parsed.history:[]}}}catch(e){}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function save(){localStorage.setItem(KEY,JSON.stringify(state));render();if(typeof window.lrSaveCloud==='function')window.lrSaveCloud();}function hasPlus(){return state.user&&state.user.plan==='plus'}
