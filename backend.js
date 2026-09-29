@@ -50,16 +50,12 @@ async function loadUser(user){
   var d=await sb.from("life_data").select("data").eq("user_id",user.id).maybeSingle();
   if(d.error)throw d.error;
   var cloud=d.data?.data||{};
-  var localBefore=loadLocalState();
+  // A signed-in account is authoritative. Do not let stale device-local data
+  // overwrite the account's cloud state during hydration.
   state={...guest(),...cloud,user:{...guest().user,...(cloud.user||{})}};
   state.tasks=Array.isArray(state.tasks)?state.tasks:[];
   state.goals=Array.isArray(state.goals)?state.goals:[];
   state.history=Array.isArray(state.history)?state.history:[];
-  // Preserve non-empty local changes during account hydration.
-  ["tasks","goals","brain","bills","income","applications","history","settings"].forEach(function(k){
-    var lv=localBefore[k],cv=state[k],gv=guest()[k];
-    if(JSON.stringify(lv)!==JSON.stringify(gv) && JSON.stringify(lv)!==JSON.stringify(cv)) state[k]=cloneLR(lv);
-  });
   state.user.name=profile?.full_name||user.user_metadata?.full_name||state.user.name;
   state.user.email=user.email||profile?.email||state.user.email;
   state.user.plan=isPlus()?"plus":"free";
@@ -91,13 +87,20 @@ async function saveCloud(){
     var latestRes=await sb.from("life_data").select("data").eq("user_id",userId).maybeSingle();
     if(latestRes.error)throw latestRes.error;
     var latest=latestRes.data?.data||guest();
-    var savedState=state; var savedBase=cloudBaseline; state=localSnapshot; cloudBaseline=baselineSnapshot; var snapshot=mergeCloudSafe(latest); state=savedState; cloudBaseline=savedBase;
+    var savedState=state;
+    var savedBase=cloudBaseline;
+    state=localSnapshot;
+    cloudBaseline=baselineSnapshot;
+    var snapshot=mergeCloudSafe(latest);
+    state=savedState;
+    cloudBaseline=savedBase;
     var r=await sb.from("life_data").upsert({user_id:userId,data:snapshot,updated_at:new Date().toISOString()},{onConflict:"user_id"});
     if(r.error)throw r.error;
-    state=snapshot;
-    cloudBaseline=cloneLR(snapshot);
-    localStorage.setItem("lifeReset3",JSON.stringify(snapshot));
-    render();
+    // Never replace newer live UI changes with an older queued snapshot.
+    if(sameLR(state,localSnapshot) && sameLR(cloudBaseline,baselineSnapshot)){
+      cloudBaseline=cloneLR(snapshot);
+      localStorage.setItem("lifeReset3",JSON.stringify(state));
+    }
   });
   return cloudSaveQueue;
 }
