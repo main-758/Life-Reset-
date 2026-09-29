@@ -112,14 +112,24 @@ async function boot(){
     window.LR_SUPABASE=sb;
     sb.auth.onAuthStateChange(function(event,next){
       session=next||null;
-      if(event==="SIGNED_OUT"){profile=null;hydratedUserId=null;cloudBaseline=null;state=loadLocalState();localStorage.setItem("lifeReset3",JSON.stringify(state));renderAccountUI();render();return;}
+      if(event==="SIGNED_OUT"){
+      profile=null;hydratedUserId=null;cloudBaseline=null;state=guest();
+      localStorage.removeItem("lifeReset3");
+      renderAccountUI();render();
+      setTimeout(function(){location.replace("auth.html?mode=signin&signedout=1");},0);
+      return;
+    }
       if(event==="PASSWORD_RECOVERY"){location.replace("auth.html?mode=reset"+location.search+location.hash);return;}
       if(next)setTimeout(function(){loadUser(next.user).catch(function(e){console.error(e);});},0);
     });
     var r=await sb.auth.getSession();
     session=r.data.session||null;
     if(session){await loadUser(session.user);}
-    else { state=loadLocalState(); localStorage.setItem("lifeReset3",JSON.stringify(state)); renderAccountUI(); render(); }
+    else {
+      state=guest(); localStorage.removeItem("lifeReset3");
+      location.replace("auth.html?mode=signin");
+      return;
+    }
   }catch(e){console.error(e);renderAccountUI();render();}
 }
 
@@ -168,7 +178,16 @@ window.submitAuthModal=async function(signup){
     if(r.data.session){closeModal();showMessage(signup?"Account created. Welcome to Life Reset!":"Welcome back!");}
   }catch(e){if(msg)msg.textContent=e?.message||"Authentication failed.";}
 };
-window.signOutLR=async function(){if(!sb)return;try{if(session)await saveCloud();var r=await sb.auth.signOut();if(r.error)throw r.error;showMessage("Signed out. Your latest changes were saved.");}catch(e){console.error(e);showMessage(e?.message||"Could not sign out safely. Your latest changes may still be saving.");}};
+window.signOutLR=async function(){
+  if(!sb)return;
+  try{
+    if(session)await saveCloud();
+    var r=await sb.auth.signOut();
+    if(r.error)throw r.error;
+    session=null;profile=null;hydratedUserId=null;cloudBaseline=null;state=guest();
+    localStorage.removeItem("lifeReset3");
+    location.replace("auth.html?mode=signin&signedout=1");
+  }catch(e){console.error(e);showMessage(e?.message||"Could not sign out safely. Your latest changes may still be saving.");}};
 window.save=async function(){render();try{await saveCloud();showMessage("Saved to your Life Reset account.");}catch(e){console.error(e);showMessage("Saved on this device. Cloud sync needs attention.");}};
 window.saveProfile=async function(){
   if(!session){window.openAuth(0);return;}
