@@ -1,7 +1,7 @@
 (function(){
 "use strict";
 var cfg=window.LIFE_RESET_CONFIG||{};
-var sb=null,session=null,profile=null,hydratedUserId=null;
+var sb=null,session=null,profile=null,hydratedUserId=null,cloudBaseline=null;
 
 function guest(){
   return {user:{name:"",email:"",plan:"free"},tasks:[],brain:"",bills:[],income:[],applications:[],goals:[],history:[],settings:{dark:false}};
@@ -58,6 +58,7 @@ async function loadUser(user){
   state.user.email=user.email||profile?.email||state.user.email;
   state.user.plan=isPlus()?"plus":"free";
   hydratedUserId=user.id;
+  cloudBaseline=cloneLR(state);
   localStorage.setItem("lifeReset3",JSON.stringify(state));
   if(!d.data){
     await sb.from("life_data").upsert({user_id:user.id,data:state,updated_at:new Date().toISOString()},{onConflict:"user_id"});
@@ -66,14 +67,30 @@ async function loadUser(user){
   render();
 }
 var cloudSaveQueue=Promise.resolve();
+function cloneLR(v){return JSON.parse(JSON.stringify(v));}
+function sameLR(a,b){try{return JSON.stringify(a)===JSON.stringify(b);}catch(e){return false;}}
+function mergeCloudSafe(latest){
+  var base=cloudBaseline||guest(), local=state||guest(), merged=cloneLR(latest||guest());
+  ["user","tasks","brain","bills","income","applications","goals","history","settings"].forEach(function(k){
+    if(!sameLR(local[k],base[k])) merged[k]=cloneLR(local[k]);
+  });
+  return merged;
+}
 async function saveCloud(){
   if(!sb||!session||hydratedUserId!==session.user.id)return;
-  var snapshot=JSON.parse(JSON.stringify(state));
+  var localSnapshot=cloneLR(state);
   var userId=session.user.id;
   cloudSaveQueue=cloudSaveQueue.then(async function(){
+    var latestRes=await sb.from("life_data").select("data").eq("user_id",userId).maybeSingle();
+    if(latestRes.error)throw latestRes.error;
+    var latest=latestRes.data?.data||guest();
+    var snapshot=mergeCloudSafe(latest);
     var r=await sb.from("life_data").upsert({user_id:userId,data:snapshot,updated_at:new Date().toISOString()},{onConflict:"user_id"});
     if(r.error)throw r.error;
+    state=snapshot;
+    cloudBaseline=cloneLR(snapshot);
     localStorage.setItem("lifeReset3",JSON.stringify(snapshot));
+    render();
   });
   return cloudSaveQueue;
 }
@@ -88,7 +105,7 @@ async function boot(){
     window.LR_SUPABASE=sb;
     sb.auth.onAuthStateChange(function(event,next){
       session=next||null;
-      if(event==="SIGNED_OUT"){profile=null;hydratedUserId=null;state=loadLocalState();localStorage.setItem("lifeReset3",JSON.stringify(state));renderAccountUI();render();return;}
+      if(event==="SIGNED_OUT"){profile=null;hydratedUserId=null;cloudBaseline=null;state=loadLocalState();localStorage.setItem("lifeReset3",JSON.stringify(state));renderAccountUI();render();return;}
       if(event==="PASSWORD_RECOVERY"){location.replace("auth.html?mode=reset"+location.search+location.hash);return;}
       if(next)setTimeout(function(){loadUser(next.user).catch(function(e){console.error(e);});},0);
     });
