@@ -55,13 +55,10 @@ async function loadUser(user){
   state.tasks=Array.isArray(state.tasks)?state.tasks:[];
   state.goals=Array.isArray(state.goals)?state.goals:[];
   state.history=Array.isArray(state.history)?state.history:[];
-  // Preserve locally completed tasks when a stale cloud/browser copy is being restored.
-  var cloudTaskById={}; state.tasks.forEach(function(t){if(t&&t.id)cloudTaskById[String(t.id)]=t;});
-  (localBefore.tasks||[]).forEach(function(t){
-    if(t&&t.id&&t.done){
-      var c=cloudTaskById[String(t.id)];
-      if(c&&!c.done){c.done=true;c.completedAt=t.completedAt||c.completedAt||new Date().toISOString();}
-    }
+  // Preserve non-empty local changes during account hydration.
+  ["tasks","goals","brain","bills","income","applications","history","settings"].forEach(function(k){
+    var lv=localBefore[k],cv=state[k],gv=guest()[k];
+    if(JSON.stringify(lv)!==JSON.stringify(gv) && JSON.stringify(lv)!==JSON.stringify(cv)) state[k]=cloneLR(lv);
   });
   state.user.name=profile?.full_name||user.user_metadata?.full_name||state.user.name;
   state.user.email=user.email||profile?.email||state.user.email;
