@@ -18,7 +18,7 @@ function renderAccountUI(){
       var n=state.user.name||profile?.full_name||"Your account";
       side.innerHTML='<div class="row"><div class="avatar">'+escA(n.slice(0,2).toUpperCase())+'</div><div><b>'+escA(n)+'</b><div class="small">'+(isPlus()?"Plus member":"Free plan")+'</div></div></div><div class="row" style="margin-top:10px"><button class="btn dark" onclick="window.openAccount()">Account</button><button class="btn dark" onclick="window.signOutLR()">Sign out</button></div>';
     }else{
-      side.innerHTML='<div class="eyebrow">ACCOUNT</div><b>Save your Rovelya</b><div class="small" style="margin-top:4px">Keep your plans and progress with your account.</div><div class="row" style="margin-top:10px"><button class="btn primary" onclick="window.openAuth(1)">Create account</button><button class="btn dark" onclick="window.openAuth(0)">Sign in</button></div>';
+      side.innerHTML='<div class="eyebrow">ACCOUNT</div><b>Save your LIFEVO</b><div class="small" style="margin-top:4px">Keep your plans and progress with your account.</div><div class="row" style="margin-top:10px"><button class="btn primary" onclick="window.openAuth(1)">Create account</button><button class="btn dark" onclick="window.openAuth(0)">Sign in</button></div>';
     }
   }
   var mob=document.getElementById("mobileAccountBtn");
@@ -102,7 +102,7 @@ window.openAuth=function(signup){
     '<button class="btn primary" style="width:100%;margin-top:16px" onclick="window.submitAuthModal('+!!signup+')">'+mode+'</button>'+
     (!signup?'<div style="text-align:right;margin-top:10px"><button class="btn" style="border:0;background:none;padding:0;color:var(--brand);font-weight:900" onclick="window.showResetPassword()">Forgot password?</button></div>':'')+
     '<div class="row" style="justify-content:center;margin-top:12px"><button class="btn" onclick="window.openAuth('+(!signup)+');"> '+(signup?"I already have an account":"Create an account")+' </button></div>'+
-    '<div class="small">Use your same account on every device to restore your saved Rovelya data.</div>';
+    '<div class="small">Use your same account on every device to restore your saved LIFEVO data.</div>';
   if(typeof openModal==="function")openModal(mode,body);else location.href="auth.html?mode="+(signup?"signup":"signin");
 };
 window.showResetPassword=function(){location.href="https://docs.google.com/forms/d/e/1FAIpQLSewfuoKEirB6ikGXLc6qHq5QIrnA0HxlkrN5Kf7o1_E55ypXw/viewform?usp=header";};
@@ -131,11 +131,11 @@ window.submitAuthModal=async function(signup){
       if(msg)msg.textContent="Account created. Check your email to verify it, then sign in.";
       return;
     }
-    if(r.data.session){closeModal();showMessage(signup?"Account created. Welcome to Rovelya!":"Welcome back!");}
+    if(r.data.session){closeModal();showMessage(signup?"Account created. Welcome to LIFEVO!":"Welcome back!");}
   }catch(e){if(msg)msg.textContent=e?.message||"Authentication failed.";}
 };
 window.signOutLR=async function(){if(!sb)return;try{if(session)await saveCloud();var r=await sb.auth.signOut();if(r.error)throw r.error;showMessage("Signed out. Your latest changes were saved.");}catch(e){console.error(e);showMessage(e?.message||"Could not sign out safely. Your latest changes may still be saving.");}};
-window.save=async function(){render();try{await saveCloud();showMessage("Saved to your Rovelya account.");}catch(e){console.error(e);showMessage("Saved on this device. Cloud sync needs attention.");}};
+window.save=async function(){render();try{await saveCloud();showMessage("Saved to your LIFEVO account.");}catch(e){console.error(e);showMessage("Saved on this device. Cloud sync needs attention.");}};
 window.saveProfile=async function(){
   if(!session){window.openAuth(0);return;}
   var n=(document.getElementById("name")?.value||"").trim();
@@ -152,7 +152,7 @@ window.saveProfile=async function(){
 window.openAccount=function(){
   if(!session){window.openAuth(0);return;}
   var n=state.user.name||"Your account";
-  var html='<div class="sectionHead"><div><div class="eyebrow">ACCOUNT</div><h2>'+escA(n)+'</h2></div><button class="btn" onclick="closeModal()">×</button></div><div class="notice"><b>'+ (isPlus()?"Plus":"Free") +' plan</b><br>'+escA(state.user.email)+'</div><p class="muted" style="margin-top:14px">Your Rovelya plans and progress are linked to this account and saved in the cloud.</p>'+(isPlus()?'<div class="small">Rovelya Plus is active.</div>':'<button class="btn primary" style="width:100%;margin-top:14px" onclick="closeModal();window.openPlus()">Get Plus — $7.99/month</button>')+'<button class="btn dark" style="width:100%;margin-top:10px" onclick="window.signOutLR()">Sign out</button>';
+  var html='<div class="sectionHead"><div><div class="eyebrow">ACCOUNT</div><h2>'+escA(n)+'</h2></div><button class="btn" onclick="closeModal()">×</button></div><div class="notice"><b>'+ (isPlus()?"Plus":"Free") +' plan</b><br>'+escA(state.user.email)+'</div><p class="muted" style="margin-top:14px">Your LIFEVO plans and progress are linked to this account and saved in the cloud.</p>'+(isPlus()?'<div class="small">LIFEVO Plus is active.</div>':'<button class="btn primary" style="width:100%;margin-top:14px" onclick="closeModal();window.openPlus()">Get Plus — $7.99/month</button>')+'<button class="btn dark" style="width:100%;margin-top:10px" onclick="window.signOutLR()">Sign out</button>';
   document.getElementById("modalCard").innerHTML=html;document.getElementById("modal").classList.add("open");
 };
 window.startPayPalCheckout=function(){window.openPlus();};
