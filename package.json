@@ -1,0 +1,10 @@
+{
+  "name":"life-reset-app",
+  "version":"1.0.0",
+  "private":true,
+  "scripts":{
+    "build:mobile":"node -e \"require('fs').mkdirSync('www',{recursive:true}); ['index.html','config.js','backend.js','manifest.json','sw.js','Life Reset app logo.png'].forEach(f=>require('fs').copyFileSync(f,'www/'+f))\" && npx cap sync android"
+  },
+  "dependencies":{"@capacitor/core":"^8.0.0"},
+  "devDependencies":{"@capacitor/cli":"^8.0.0","@capacitor/android":"^8.0.0"}
+}
