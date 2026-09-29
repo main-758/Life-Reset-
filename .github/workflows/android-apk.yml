@@ -20,7 +20,8 @@ jobs:
       - name: Prepare web assets
         run: |
           mkdir -p www
-          cp index.html config.js backend.js manifest.json sw.js "Life Reset app logo.png" www/
+          cp mobile/index.html www/index.html
+          cp config.js backend.js manifest.json sw.js "Life Reset app logo.png" www/
       - run: npx cap add android
       - run: npx cap sync android
       - uses: actions/setup-java@v4
