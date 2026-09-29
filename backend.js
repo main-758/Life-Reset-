@@ -84,7 +84,7 @@ async function boot(){
     });
     var r=await sb.auth.getSession();
     session=r.data.session||null;
-    if(session)await loadUser(session.user);
+    if(session){await loadUser(session.user); await window.syncPlusCheckout();}
     else { state=guest(); localStorage.setItem("lifeReset3",JSON.stringify(state)); renderAccountUI(); render(); }
   }catch(e){console.error(e);renderAccountUI();render();}
 }
@@ -156,12 +156,35 @@ window.openAccount=function(){
   document.getElementById("modalCard").innerHTML=html;document.getElementById("modal").classList.add("open");
 };
 window.startPayPalCheckout=function(){window.openPlus();};
+window.syncPlusCheckout=async function(){
+  var sid=new URLSearchParams(location.search).get("session_id");
+  if(!sid||!sb||!session)return;
+  try{
+    var r=await sb.functions.invoke("stripe-sync",{body:{session_id:sid}});
+    if(r.error||r.data?.error)throw r.error||new Error(r.data.error);
+    history.replaceState({},document.title,location.pathname+"#premium");
+    if(r.data?.plus){
+      profile={...profile,subscription_status:r.data.status,subscription_id:r.data.subscription_id,renews_at:r.data.renews_at,ends_at:r.data.ends_at};
+      state.user.plan="plus"; localStorage.setItem("lifeReset3",JSON.stringify(state)); renderAccountUI(); render();
+      showMessage("Plus is active — welcome to Life Reset Plus!");
+    }
+  }catch(e){console.error(e);showMessage(e?.message||"We couldn't verify your Plus payment yet. Please try again in a moment.");}
+};
 window.openPlus=function(){
   if(!session){window.openAuth(0);return;}
   if(isPlus()){window.openAccount();return;}
-  var paypal=cfg.PAYPAL_PLUS_LINK||"";
-  var html='<div class="sectionHead"><div><div class="eyebrow">LIFE RESET PLUS</div><h2>$7.99/month</h2></div><button class="btn" onclick="closeModal()">×</button></div><p class="muted">Unlimited planning, cloud sync, advanced insights and an ad-free experience.</p><div class="notice" style="margin-top:16px"><b>Pay with PayPal</b><br>Your Plus subscription will be handled securely by PayPal.</div>'+(paypal?'<a class="btn primary" style="display:block;width:100%;margin-top:16px;text-align:center;text-decoration:none" href="'+escA(paypal)+'" target="_blank" rel="noopener noreferrer">Continue with PayPal</a>':'<div class="msg" style="margin-top:14px">PayPal checkout link is not connected yet.</div>')+'<button class="btn" style="width:100%;margin-top:10px" onclick="closeModal()">Not now</button>';
+  var html='<div class="sectionHead"><div><div class="eyebrow">LIFE RESET PLUS</div><h2>$7.99/month</h2></div><button class="btn" onclick="closeModal()">×</button></div><p class="muted">Unlimited planning, cloud sync, advanced insights and an ad-free experience.</p><div class="notice" style="margin-top:16px"><b>Secure checkout</b><br>You'll be taken to Stripe Checkout to complete your monthly Plus subscription.</div><button class="btn primary" style="width:100%;margin-top:16px" onclick="window.beginStripeCheckout()">Continue to secure checkout</button><button class="btn" style="width:100%;margin-top:10px" onclick="closeModal()">Not now</button>';
   document.getElementById("modalCard").innerHTML=html;document.getElementById("modal").classList.add("open");
+};
+window.beginStripeCheckout=async function(){
+  try{
+    if(!session){window.openAuth(0);return;}
+    var btn=document.querySelector("#modalCard .btn.primary");if(btn){btn.disabled=true;btn.textContent="Opening secure checkout…";}
+    var r=await sb.functions.invoke("stripe-checkout",{body:{price_id:"price_1UKMYyRtN7zN37oVGiZ1W3LQ"}});
+    if(r.error||r.data?.error)throw r.error||new Error(r.data.error);
+    if(!r.data?.url)throw new Error("Checkout did not return a payment URL.");
+    location.href=r.data.url;
+  }catch(e){console.error(e);showMessage(e?.message||"We couldn't open secure checkout.");}
 };
 ;
 boot();
