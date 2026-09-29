@@ -1,1 +1,17 @@
-{"name":"Life Reset","short_name":"Life Reset","start_url":"./","display":"standalone","background_color":"#f6f6fb","theme_color":"#0d0d14","description":"Turn a messy life into a clear next step.","icons":[]}
+{
+  "name": "Life Reset",
+  "short_name": "Life Reset",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6f6fb",
+  "theme_color": "#0d0d14",
+  "description": "Turn a messy life into a clear next step.",
+  "icons": [
+    {
+      "src": "Life%20Reset%20app%20logo.png",
+      "type": "image/png",
+      "sizes": "1096x1095",
+      "purpose": "any"
+    }
+  ]
+}
