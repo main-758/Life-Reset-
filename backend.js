@@ -50,10 +50,19 @@ async function loadUser(user){
   var d=await sb.from("life_data").select("data").eq("user_id",user.id).maybeSingle();
   if(d.error)throw d.error;
   var cloud=d.data?.data||{};
+  var localBefore=loadLocalState();
   state={...guest(),...cloud,user:{...guest().user,...(cloud.user||{})}};
   state.tasks=Array.isArray(state.tasks)?state.tasks:[];
   state.goals=Array.isArray(state.goals)?state.goals:[];
   state.history=Array.isArray(state.history)?state.history:[];
+  // Preserve locally completed tasks when a stale cloud/browser copy is being restored.
+  var cloudTaskById={}; state.tasks.forEach(function(t){if(t&&t.id)cloudTaskById[String(t.id)]=t;});
+  (localBefore.tasks||[]).forEach(function(t){
+    if(t&&t.id&&t.done){
+      var c=cloudTaskById[String(t.id)];
+      if(c&&!c.done){c.done=true;c.completedAt=t.completedAt||c.completedAt||new Date().toISOString();}
+    }
+  });
   state.user.name=profile?.full_name||user.user_metadata?.full_name||state.user.name;
   state.user.email=user.email||profile?.email||state.user.email;
   state.user.plan=isPlus()?"plus":"free";
