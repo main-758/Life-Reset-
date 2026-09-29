@@ -6,5 +6,5 @@
     "build:mobile":"node -e \"require('fs').mkdirSync('www',{recursive:true}); [['mobile/index.html','index.html'],['config.js','config.js'],['backend.js','backend.js'],['manifest.json','manifest.json'],['sw.js','sw.js'],['Life Reset app logo.png','Life Reset app logo.png']].forEach(([s,d])=>require('fs').copyFileSync(s,'www/'+d))\" && npx cap sync android"
   },
   "dependencies":{"@capacitor/core":"^8.0.0"},
-  "devDependencies":{"@capacitor/cli":"^8.0.0","@capacitor/android":"^8.0.0"}
+  "devDependencies":{"@capacitor/cli":"^8.0.0","@capacitor/android":"^8.0.0","@capacitor/ios":"^8.0.0"}
 }
