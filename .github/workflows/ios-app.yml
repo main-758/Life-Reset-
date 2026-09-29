@@ -1,0 +1,50 @@
+name: Build Life Reset iPhone app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Prepare web assets
+        run: |
+          mkdir -p www
+          cp mobile/index.html www/index.html
+          cp config.js backend.js manifest.json sw.js "Life Reset app logo.png" www/
+
+      - name: Add iOS platform
+        run: npx cap add ios
+
+      - name: Sync Capacitor iOS project
+        run: npx cap sync ios
+
+      - name: Build unsigned iPhone app
+        working-directory: ios/App
+        run: |
+          xcodebuild             -workspace App.xcworkspace             -scheme App             -sdk iphonesimulator             -configuration Debug             -derivedDataPath build             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             build
+
+      - name: Package iPhone simulator app
+        run: |
+          cd ios/App/build/Build/Products/Debug-iphonesimulator
+          zip -r ../../../../../../life-reset-iphone-simulator.zip App.app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: life-reset-iphone-simulator
+          path: life-reset-iphone-simulator.zip
+          if-no-files-found: error
