@@ -87,7 +87,7 @@ async function boot(){
     window.LR_SUPABASE=sb;
     sb.auth.onAuthStateChange(function(event,next){
       session=next||null;
-      if(event==="SIGNED_OUT"){profile=null;state=guest();localStorage.setItem("lifeReset3",JSON.stringify(state));renderAccountUI();render();return;}
+      if(event==="SIGNED_OUT"){profile=null;state=loadLocalState();localStorage.setItem("lifeReset3",JSON.stringify(state));renderAccountUI();render();return;}
       if(event==="PASSWORD_RECOVERY"){location.replace("auth.html?mode=reset"+location.search+location.hash);return;}
       if(next)setTimeout(function(){loadUser(next.user).catch(function(e){console.error(e);});},0);
     });
