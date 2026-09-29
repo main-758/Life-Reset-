@@ -6,6 +6,14 @@ var sb=null,session=null,profile=null;
 function guest(){
   return {user:{name:"",email:"",plan:"free"},tasks:[],brain:"",bills:[],income:[],applications:[],goals:[],history:[],settings:{dark:false}};
 }
+function loadLocalState(){
+  try{
+    var raw=localStorage.getItem("lifeReset3");
+    if(!raw)return guest();
+    var local=JSON.parse(raw)||{};
+    return {...guest(),...local,user:{...guest().user,...(local.user||{})},tasks:Array.isArray(local.tasks)?local.tasks:[],goals:Array.isArray(local.goals)?local.goals:[],history:Array.isArray(local.history)?local.history:[]};
+  }catch(e){return guest();}
+}
 function escA(s){return String(s||"").replace(/[&<>'"]/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]);});}
 function isPlus(){return !!profile&&["active","on_trial","trialing"].indexOf(profile.subscription_status)>=0;}
 function showMessage(msg){
@@ -68,6 +76,7 @@ async function saveCloud(){
   });
   return cloudSaveQueue;
 }
+window.lrSaveCloud=function(){return saveCloud().catch(function(e){console.error("Life Reset cloud save failed:",e);});};
 async function boot(){
   try{
     if(/(?:^|[&#])type=recovery(?:&|#|$)/.test(location.hash.slice(1)) || new URLSearchParams(location.search).get("type")==="recovery"){
@@ -85,7 +94,7 @@ async function boot(){
     var r=await sb.auth.getSession();
     session=r.data.session||null;
     if(session){await loadUser(session.user);}
-    else { state=guest(); localStorage.setItem("lifeReset3",JSON.stringify(state)); renderAccountUI(); render(); }
+    else { state=loadLocalState(); localStorage.setItem("lifeReset3",JSON.stringify(state)); renderAccountUI(); render(); }
   }catch(e){console.error(e);renderAccountUI();render();}
 }
 
