@@ -85,12 +85,13 @@ function mergeCloudSafe(latest){
 async function saveCloud(){
   if(!sb||!session||hydratedUserId!==session.user.id)return;
   var localSnapshot=cloneLR(state);
+  var baselineSnapshot=cloneLR(cloudBaseline||guest());
   var userId=session.user.id;
   cloudSaveQueue=cloudSaveQueue.then(async function(){
     var latestRes=await sb.from("life_data").select("data").eq("user_id",userId).maybeSingle();
     if(latestRes.error)throw latestRes.error;
     var latest=latestRes.data?.data||guest();
-    var snapshot=mergeCloudSafe(latest);
+    var savedState=state; var savedBase=cloudBaseline; state=localSnapshot; cloudBaseline=baselineSnapshot; var snapshot=mergeCloudSafe(latest); state=savedState; cloudBaseline=savedBase;
     var r=await sb.from("life_data").upsert({user_id:userId,data:snapshot,updated_at:new Date().toISOString()},{onConflict:"user_id"});
     if(r.error)throw r.error;
     state=snapshot;
