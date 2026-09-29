@@ -84,7 +84,7 @@ async function boot(){
     });
     var r=await sb.auth.getSession();
     session=r.data.session||null;
-    if(session){await loadUser(session.user); await window.syncPlusCheckout();}
+    if(session){await loadUser(session.user);}
     else { state=guest(); localStorage.setItem("lifeReset3",JSON.stringify(state)); renderAccountUI(); render(); }
   }catch(e){console.error(e);renderAccountUI();render();}
 }
