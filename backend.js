@@ -4,7 +4,7 @@ var cfg=window.LIFE_RESET_CONFIG||{};
 var sb=null,session=null,profile=null,hydratedUserId=null,cloudBaseline=null;
 
 function guest(){
-  return {user:{name:"",email:"",plan:"free"},tasks:[],brain:"",bills:[],income:[],applications:[],goals:[],history:[],settings:{dark:false}};
+  return {user:{name:"",email:"",plan:"free"},tasks:[],brain:"",bills:[],income:[],applications:[],goals:[],history:[],settings:{dark:false},deletedTaskIds:[]};
 }
 function loadLocalState(){
   try{
@@ -56,6 +56,8 @@ async function loadUser(user){
   state.tasks=Array.isArray(state.tasks)?state.tasks:[];
   state.goals=Array.isArray(state.goals)?state.goals:[];
   state.history=Array.isArray(state.history)?state.history:[];
+  state.deletedTaskIds=Array.isArray(state.deletedTaskIds)?state.deletedTaskIds.map(String):[];
+  if(state.deletedTaskIds.length)state.tasks=state.tasks.filter(function(t){return !state.deletedTaskIds.includes(String(t.id));});
   state.user.name=profile?.full_name||user.user_metadata?.full_name||state.user.name;
   state.user.email=user.email||profile?.email||state.user.email;
   state.user.plan=isPlus()?"plus":"free";
@@ -73,9 +75,11 @@ function cloneLR(v){return JSON.parse(JSON.stringify(v));}
 function sameLR(a,b){try{return JSON.stringify(a)===JSON.stringify(b);}catch(e){return false;}}
 function mergeCloudSafe(latest){
   var base=cloudBaseline||guest(), local=state||guest(), merged=cloneLR(latest||guest());
-  ["user","tasks","brain","bills","income","applications","goals","history","settings"].forEach(function(k){
+  ["user","tasks","brain","bills","income","applications","goals","history","settings","deletedTaskIds"].forEach(function(k){
     if(!sameLR(local[k],base[k])) merged[k]=cloneLR(local[k]);
   });
+  merged.deletedTaskIds=Array.isArray(merged.deletedTaskIds)?merged.deletedTaskIds.map(String):[];
+  if(merged.deletedTaskIds.length)merged.tasks=(Array.isArray(merged.tasks)?merged.tasks:[]).filter(function(t){return !merged.deletedTaskIds.includes(String(t.id));});
   return merged;
 }
 async function saveCloud(){
