@@ -1,0 +1,38 @@
+name: Build Life Reset Android app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install
+      - name: Prepare web assets
+        run: |
+          mkdir -p www
+          cp index.html config.js backend.js manifest.json sw.js "Life Reset app logo.png" www/
+      - run: npx cap add android
+      - run: npx cap sync android
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: life-reset-android
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
