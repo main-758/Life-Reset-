@@ -124,7 +124,7 @@ async function boot(){
       return;
     }
       if(event==="PASSWORD_RECOVERY"){location.replace("auth.html?mode=reset"+location.search+location.hash);return;}
-      if(next)setTimeout(function(){loadUser(next.user).catch(function(e){console.error(e);});},0);
+      if(next && event!=="INITIAL_SESSION")setTimeout(function(){loadUser(next.user).catch(function(e){console.error(e);});},0);
     });
     var r=await sb.auth.getSession();
     session=r.data.session||null;
