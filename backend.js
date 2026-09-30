@@ -75,6 +75,7 @@ async function loadUser(user){
   state.user.plan=isPlus()?"plus":"free";
   hydratedUserId=user.id;
   localStorage.setItem("lifeReset3",JSON.stringify(state));
+    localRevision++;
   if(!d.data){
     var first=await sb.from("life_data").upsert({user_id:user.id,data:state,updated_at:new Date().toISOString()},{onConflict:"user_id"}).select("data").single();
     if(first.error)throw first.error;
