@@ -20,8 +20,21 @@ async function submitAuth(){
   if(authMode==="signup"){
    var r=await client.auth.signUp({email:email,password:password,options:{data:{full_name:name},emailRedirectTo:appUrl()}});
    if(r.error)throw r.error;
+   // Supabase may return an obfuscated user for an email that already exists
+   // when email confirmation is enabled. Do not tell the person a new account
+   // was created when no new identity was actually created.
+   if(r.data.user && Array.isArray(r.data.user.identities) && r.data.user.identities.length===0){
+     say("That email already has a Life Reset account. Please sign in instead.");
+     mode("signin");
+     document.getElementById("email").value=email;
+     return;
+   }
    if(r.data.session){say("Account created. Opening Life Reset...",true);setTimeout(function(){location.href=appUrl()},300);}
-   else{document.getElementById("formView").classList.add("hidden");document.getElementById("successView").classList.remove("hidden");}
+   else{
+     document.getElementById("formView").classList.add("hidden");
+     document.getElementById("successView").classList.remove("hidden");
+     document.querySelector("#successView .sub").textContent="Your account was created. Check your email to verify your address, then sign in.";
+   }
   }else{
    var r2=await client.auth.signInWithPassword({email:email,password:password});
    if(r2.error)throw r2.error;
@@ -31,7 +44,15 @@ async function submitAuth(){
  finally{button.disabled=false;button.textContent=authMode==="signup"?"Create account":"Sign in";}
 }
 function resetRedirectUrl(){return appUrl()+"auth.html?mode=reset";}
-function showForgot(){location.href="https://docs.google.com/forms/d/e/1FAIpQLSewfuoKEirB6ikGXLc6qHq5QIrnA0HxlkrN5Kf7o1_E55ypXw/viewform?usp=header";}
+function showForgot(){
+ document.getElementById("formView").classList.add("hidden");
+ document.getElementById("successView").classList.add("hidden");
+ document.getElementById("updateView").classList.add("hidden");
+ document.getElementById("forgotView").classList.remove("hidden");
+ var e=document.getElementById("email").value.trim();
+ if(e)document.getElementById("resetEmail").value=e;
+ document.getElementById("resetEmail").focus();
+}
 function backToSignIn(){history.replaceState({},document.title,"auth.html?mode=signin");document.getElementById("forgotView").classList.add("hidden");document.getElementById("updateView").classList.add("hidden");document.getElementById("formView").classList.remove("hidden");mode("signin");}
 function resetSay(t,ok){var m=document.getElementById("resetMsg");m.textContent=t||"";m.className=ok?"msg ok":"msg";}
 async function sendReset(){var email=document.getElementById("resetEmail").value.trim();if(!email){resetSay("Enter your email address.");return;}resetSay("Sending reset link…",true);try{var r=await client.auth.resetPasswordForEmail(email,{redirectTo:resetRedirectUrl()});if(r.error)throw r.error;resetSay("Reset link sent. Check your email.",true);}catch(e){console.error(e);resetSay(e&&e.message?e.message:"Could not send the reset link.");}}
