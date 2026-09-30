@@ -73,7 +73,7 @@ function renderCalendar(){
  for(let day=1;day<=days;day++){
   const iso=y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
   const dayTasks=state.tasks.filter(t=>taskDue(t)===iso),dayBills=state.bills.filter(x=>String(x.due||x.date||'').slice(0,10)===iso),dayIncome=state.income.filter(x=>String(x.date||x.due||'').slice(0,10)===iso),itemCount=dayTasks.length+dayBills.length+dayIncome.length,isToday=iso===localISODate();
-  cells+='<div class="day '+(isToday?'today':'')+'" style="cursor:pointer" onclick="showCalendarDay(\\''+iso+'\\')"><b>'+day+'</b>'+(itemCount?'<div><span class="dot"></span><span class="small">'+itemCount+' item'+(itemCount===1?'':'s')+'</span></div>':'')+'</div>';
+  cells+='<div class="day '+(isToday?'today':'')+'" data-date="'+iso+'" style="cursor:pointer" onclick="showCalendarDay(this.dataset.date)"><b>'+day+'</b>'+(itemCount?'<div><span class="dot"></span><span class="small">'+itemCount+' item'+(itemCount===1?'':'s')+'</span></div>':'')+'</div>';
  }
  const upcoming=[...state.tasks.filter(t=>taskDue(t)).map(t=>({title:t.title,date:taskDue(t),kind:'Task'})),...state.bills.filter(x=>x.due||x.date).map(x=>({title:x.name,date:String(x.due||x.date).slice(0,10),kind:'Bill'})),...state.income.filter(x=>x.date||x.due).map(x=>({title:x.name,date:String(x.date||x.due).slice(0,10),kind:'Income'}))].filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date));
  const upcomingHtml=upcoming.length?upcoming.map(x=>'<div class="listRow"><div><b>'+esc(x.title)+'</b><div class="small">'+esc(x.kind)+'</div></div><span class="small">'+esc(x.date)+'</span></div>').join(''):'<div class="empty">Add dates to tasks, bills, or income to see them here.</div>';
