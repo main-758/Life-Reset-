@@ -215,7 +215,15 @@ window.submitAuthModal=async function(signup){
     var r=signup
       ?await sb.auth.signUp({email:email,password:pw,options:{data:{full_name:name},emailRedirectTo:cfg.APP_URL}})
       :await sb.auth.signInWithPassword({email:email,password:pw});
+    if(signup&&r.error&&(r.error.status===504||/504|timeout|timed out/i.test(r.error.message||""))){
+      await new Promise(function(resolve){setTimeout(resolve,1500);});
+      r=await sb.auth.signUp({email:email,password:pw,options:{data:{full_name:name},emailRedirectTo:cfg.APP_URL}});
+    }
     if(r.error)throw r.error;
+    if(signup&&r.data.user&&Array.isArray(r.data.user.identities)&&r.data.user.identities.length===0){
+      if(msg)msg.textContent="That email already has a Life Reset account. Please sign in instead.";
+      return;
+    }
     if(signup&&!r.data.session){
       if(msg)msg.textContent="Account created. Check your email to verify it, then sign in.";
       return;
