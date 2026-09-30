@@ -142,7 +142,7 @@ async function saveCloud(){
   return cloudSaveQueue;
 }
 window.lrMarkPending=function(){
-  if(!session||hydratedUserId!==session.user.id)return;
+  if(!session)return;
   try{localStorage.setItem(PENDING_KEY,JSON.stringify({userId:session.user.id,state:cloneLR(state),base:cloneLR(cloudBaseline||guest()),savedAt:new Date().toISOString()}));}catch(e){console.error("Life Reset pending save failed:",e);}
 };
 window.lrSaveCloud=function(){return saveCloud().catch(function(e){console.error("Life Reset cloud save failed:",e);});};
