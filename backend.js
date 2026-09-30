@@ -2,6 +2,7 @@
 "use strict";
 var cfg=window.LIFE_RESET_CONFIG||{};
 var sb=null,session=null,profile=null,hydratedUserId=null,cloudBaseline=null;
+var PENDING_KEY="lifeReset3Pending";
 
 function guest(){
   return {user:{name:"",email:"",plan:"free"},tasks:[],brain:"",bills:[],income:[],applications:[],goals:[],history:[],settings:{dark:false},deletedTaskIds:[]};
@@ -50,26 +51,37 @@ async function loadUser(user){
   var d=await sb.from("life_data").select("data").eq("user_id",user.id).maybeSingle();
   if(d.error)throw d.error;
   var cloud=d.data?.data||{};
-  // A signed-in account is authoritative. Do not let stale device-local data
-  // overwrite the account's cloud state during hydration.
-  state={...guest(),...cloud,user:{...guest().user,...(cloud.user||{})}};
-  state.tasks=Array.isArray(state.tasks)?state.tasks:[];
-  state.bills=Array.isArray(state.bills)?state.bills:[];
-  state.income=Array.isArray(state.income)?state.income:[];
-  state.applications=Array.isArray(state.applications)?state.applications:[];
-  state.goals=Array.isArray(state.goals)?state.goals:[];
-  state.history=Array.isArray(state.history)?state.history:[];
-  state.settings={...guest().settings,...(state.settings||{})};
-  state.deletedTaskIds=Array.isArray(state.deletedTaskIds)?state.deletedTaskIds.map(String):[];
-  if(state.deletedTaskIds.length)state.tasks=state.tasks.filter(function(t){return !state.deletedTaskIds.includes(String(t.id));});
+  // Build a clean cloud baseline first. Any pending local mutation is then
+  // replayed on top of that baseline so a refresh cannot resurrect unsynced edits.
+  var cloudState={...guest(),...cloud,user:{...guest().user,...(cloud.user||{})}};
+  cloudState.tasks=Array.isArray(cloudState.tasks)?cloudState.tasks:[];
+  cloudState.bills=Array.isArray(cloudState.bills)?cloudState.bills:[];
+  cloudState.income=Array.isArray(cloudState.income)?cloudState.income:[];
+  cloudState.applications=Array.isArray(cloudState.applications)?cloudState.applications:[];
+  cloudState.goals=Array.isArray(cloudState.goals)?cloudState.goals:[];
+  cloudState.history=Array.isArray(cloudState.history)?cloudState.history:[];
+  cloudState.settings={...guest().settings,...(cloudState.settings||{})};
+  cloudState.deletedTaskIds=Array.isArray(cloudState.deletedTaskIds)?cloudState.deletedTaskIds.map(String):[];
+  if(cloudState.deletedTaskIds.length)cloudState.tasks=cloudState.tasks.filter(function(t){return !cloudState.deletedTaskIds.includes(String(t.id));});
+  cloudBaseline=cloneLR(cloudState);
+  state=cloneLR(cloudState);
+  var pending=null;
+  try{pending=JSON.parse(localStorage.getItem(PENDING_KEY)||"null");}catch(e){pending=null;}
+  if(pending&&String(pending.userId)===String(user.id)&&pending.state){
+    state=mergePendingState(cloudState,pending.state,pending.base||cloudState);
+  }
   state.user.name=profile?.full_name||user.user_metadata?.full_name||state.user.name;
   state.user.email=user.email||profile?.email||state.user.email;
   state.user.plan=isPlus()?"plus":"free";
   hydratedUserId=user.id;
-  cloudBaseline=cloneLR(state);
   localStorage.setItem("lifeReset3",JSON.stringify(state));
   if(!d.data){
-    await sb.from("life_data").upsert({user_id:user.id,data:state,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    var first=await sb.from("life_data").upsert({user_id:user.id,data:state,updated_at:new Date().toISOString()},{onConflict:"user_id"}).select("data").single();
+    if(first.error)throw first.error;
+    cloudBaseline=cloneLR(state);
+    localStorage.removeItem(PENDING_KEY);
+  }else if(pending&&String(pending.userId)===String(user.id)&&pending.state){
+    await saveCloud();
   }
   renderAccountUI();
   render();
@@ -77,6 +89,15 @@ async function loadUser(user){
 var cloudSaveQueue=Promise.resolve();
 function cloneLR(v){return JSON.parse(JSON.stringify(v));}
 function sameLR(a,b){try{return JSON.stringify(a)===JSON.stringify(b);}catch(e){return false;}}
+function mergePendingState(latest,pendingState,pendingBase){
+  var base=pendingBase||guest(), local=pendingState||guest(), merged=cloneLR(latest||guest());
+  ["user","tasks","brain","bills","income","applications","goals","history","settings","deletedTaskIds"].forEach(function(k){
+    if(!sameLR(local[k],base[k]))merged[k]=cloneLR(local[k]);
+  });
+  merged.deletedTaskIds=Array.isArray(merged.deletedTaskIds)?merged.deletedTaskIds.map(String):[];
+  if(merged.deletedTaskIds.length)merged.tasks=(Array.isArray(merged.tasks)?merged.tasks:[]).filter(function(t){return !merged.deletedTaskIds.includes(String(t.id));});
+  return merged;
+}
 function mergeCloudSafe(latest){
   var base=cloudBaseline||guest(), local=state||guest(), merged=cloneLR(latest||guest());
   ["user","tasks","brain","bills","income","applications","goals","history","settings","deletedTaskIds"].forEach(function(k){
@@ -95,19 +116,27 @@ async function saveCloud(){
     var latestRes=await sb.from("life_data").select("data").eq("user_id",userId).maybeSingle();
     if(latestRes.error)throw latestRes.error;
     var latest=latestRes.data?.data||guest();
-    // Never let a queued save write an older snapshot after the user has edited again.
     if(!sameLR(state,localSnapshot))return;
     var snapshot=mergeCloudSafe(latest);
     if(!sameLR(state,localSnapshot))return;
-    var r=await sb.from("life_data").upsert({user_id:userId,data:snapshot,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    var r=await sb.from("life_data").upsert({user_id:userId,data:snapshot,updated_at:new Date().toISOString()},{onConflict:"user_id"}).select("data").single();
     if(r.error)throw r.error;
+    if(!sameLR(r.data?.data,snapshot))throw new Error("Cloud save verification failed.");
     if(sameLR(state,localSnapshot) && sameLR(cloudBaseline,baselineSnapshot)){
       cloudBaseline=cloneLR(snapshot);
       localStorage.setItem("lifeReset3",JSON.stringify(state));
+      try{
+        var p=JSON.parse(localStorage.getItem(PENDING_KEY)||"null");
+        if(p&&String(p.userId)===String(userId)&&sameLR(p.state,localSnapshot))localStorage.removeItem(PENDING_KEY);
+      }catch(e){}
     }
   });
   return cloudSaveQueue;
 }
+window.lrMarkPending=function(){
+  if(!session||hydratedUserId!==session.user.id)return;
+  try{localStorage.setItem(PENDING_KEY,JSON.stringify({userId:session.user.id,state:cloneLR(state),base:cloneLR(cloudBaseline||guest()),savedAt:new Date().toISOString()}));}catch(e){console.error("Life Reset pending save failed:",e);}
+};
 window.lrSaveCloud=function(){return saveCloud().catch(function(e){console.error("Life Reset cloud save failed:",e);});};
 async function boot(){
   try{
@@ -122,6 +151,7 @@ async function boot(){
       if(event==="SIGNED_OUT"){
       profile=null;hydratedUserId=null;cloudBaseline=null;state=guest();
       localStorage.removeItem("lifeReset3");
+      localStorage.removeItem(PENDING_KEY);
       renderAccountUI();render();
       setTimeout(function(){location.replace("auth.html?mode=signin&signedout=1");},0);
       return;
@@ -193,6 +223,7 @@ window.signOutLR=async function(){
     if(r.error)throw r.error;
     session=null;profile=null;hydratedUserId=null;cloudBaseline=null;state=guest();
     localStorage.removeItem("lifeReset3");
+    localStorage.removeItem(PENDING_KEY);
     location.replace("auth.html?mode=signin&signedout=1");
   }catch(e){console.error(e);showMessage(e?.message||"Could not sign out safely. Your latest changes may still be saving.");}};
 window.save=async function(){render();try{await saveCloud();showMessage("Saved to your Life Reset account.");}catch(e){console.error(e);showMessage("Saved on this device. Cloud sync needs attention.");}};
