@@ -19,6 +19,13 @@ async function submitAuth(){
  try{
   if(authMode==="signup"){
    var r=await client.auth.signUp({email:email,password:password,options:{data:{full_name:name},emailRedirectTo:appUrl()}});
+   // A transient 504 can happen while Supabase finishes the signup/email step.
+   // Retry the same signup once; Supabase will safely reject/identify a duplicate
+   // rather than creating a second account.
+   if(r.error && (r.error.status===504 || /504|timeout|timed out/i.test(r.error.message||""))){
+     await new Promise(function(resolve){setTimeout(resolve,1500);});
+     r=await client.auth.signUp({email:email,password:password,options:{data:{full_name:name},emailRedirectTo:appUrl()}});
+   }
    if(r.error)throw r.error;
    // Supabase may return an obfuscated user for an email that already exists
    // when email confirmation is enabled. Do not tell the person a new account
