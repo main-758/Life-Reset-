@@ -19,11 +19,23 @@ async function submitAuth(){
  try{
   if(authMode==="signup"){
    var r=await client.auth.signUp({email:email,password:password,options:{data:{full_name:name},emailRedirectTo:appUrl()}});
-   // A transient 504 can happen while Supabase finishes the signup/email step.
-   // Retry the same signup once; Supabase will safely reject/identify a duplicate
-   // rather than creating a second account.
+   // If Supabase times out after accepting the signup, verify the account before
+   // trying to create it again. This prevents a successful-but-timed-out signup
+   // from being reported as a failed account creation.
    if(r.error && (r.error.status===504 || /504|timeout|timed out/i.test(r.error.message||""))){
      await new Promise(function(resolve){setTimeout(resolve,1500);});
+     var verify=await client.auth.signInWithPassword({email:email,password:password});
+     if(!verify.error){
+       say("Account created. Opening Life Reset...",true);
+       setTimeout(function(){location.href=appUrl()},300);
+       return;
+     }
+     if(/email.*not.*confirm|confirm.*email/i.test(verify.error.message||"")){
+       document.getElementById("formView").classList.add("hidden");
+       document.getElementById("successView").classList.remove("hidden");
+       document.querySelector("#successView .sub").textContent="Your account was created. Check your email to verify your address, then sign in.";
+       return;
+     }
      r=await client.auth.signUp({email:email,password:password,options:{data:{full_name:name},emailRedirectTo:appUrl()}});
    }
    if(r.error)throw r.error;
