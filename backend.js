@@ -2,6 +2,8 @@
 "use strict";
 var cfg=window.LIFE_RESET_CONFIG||{};
 var sb=null,session=null,profile=null,hydratedUserId=null,cloudBaseline=null;
+var loadGeneration=0;
+var localRevision=0;
 var PENDING_KEY="lifeReset3Pending";
 
 function guest(){
@@ -39,6 +41,8 @@ function accountButton(){
     : '<button class="accountBtn primary" onclick="window.openAuth(0)">Sign in</button>';
 }
 async function loadUser(user){
+  var generation=++loadGeneration;
+  var revisionAtStart=localRevision;
   var p=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
   if(p.error)throw p.error;
   profile=p.data;
@@ -50,6 +54,8 @@ async function loadUser(user){
   }
   var d=await sb.from("life_data").select("data").eq("user_id",user.id).maybeSingle();
   if(d.error)throw d.error;
+  if(generation!==loadGeneration || !session || session.user.id!==user.id)return;
+  if(localRevision!==revisionAtStart && hydratedUserId===user.id)return;
   var cloud=d.data?.data||{};
   // Build a clean cloud baseline first. Any pending local mutation is then
   // replayed on top of that baseline so a refresh cannot resurrect unsynced edits.
@@ -228,7 +234,13 @@ window.signOutLR=async function(){
     localStorage.removeItem(PENDING_KEY);
     location.replace("auth.html?mode=signin&signedout=1");
   }catch(e){console.error(e);showMessage(e?.message||"Could not sign out safely. Your latest changes may still be saving.");}};
-window.save=async function(){render();try{await saveCloud();showMessage("Saved to your Life Reset account.");}catch(e){console.error(e);showMessage("Saved on this device. Cloud sync needs attention.");}};
+window.save=async function(){
+  localRevision++;
+  localStorage.setItem("lifeReset3",JSON.stringify(state));
+  if(typeof window.lrMarkPending==="function")window.lrMarkPending();
+  render();
+  if(typeof window.lrSaveCloud==="function")window.lrSaveCloud().catch(function(e){console.error(e);});
+};
 window.saveProfile=async function(){
   if(!session){window.openAuth(0);return;}
   var n=(document.getElementById("name")?.value||"").trim();
