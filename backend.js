@@ -216,7 +216,19 @@ window.submitAuthModal=async function(signup){
       ?await sb.auth.signUp({email:email,password:pw,options:{data:{full_name:name},emailRedirectTo:cfg.APP_URL}})
       :await sb.auth.signInWithPassword({email:email,password:pw});
     if(signup&&r.error&&(r.error.status===504||/504|timeout|timed out/i.test(r.error.message||""))){
+      // A 504 can mean Supabase accepted the signup but the client timed out.
+      // Verify the credentials before retrying so we never create/report a duplicate signup.
       await new Promise(function(resolve){setTimeout(resolve,1500);});
+      var verify=await sb.auth.signInWithPassword({email:email,password:pw});
+      if(!verify.error){
+        if(msg)msg.textContent="Account created. Welcome to Life Reset!";
+        closeModal();
+        return;
+      }
+      if(/email.*not.*confirm|confirm.*email/i.test(verify.error.message||"")){
+        if(msg)msg.textContent="Account created. Check your email to verify it, then sign in.";
+        return;
+      }
       r=await sb.auth.signUp({email:email,password:pw,options:{data:{full_name:name},emailRedirectTo:cfg.APP_URL}});
     }
     if(r.error)throw r.error;
