@@ -54,8 +54,12 @@ async function loadUser(user){
   // overwrite the account's cloud state during hydration.
   state={...guest(),...cloud,user:{...guest().user,...(cloud.user||{})}};
   state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+  state.bills=Array.isArray(state.bills)?state.bills:[];
+  state.income=Array.isArray(state.income)?state.income:[];
+  state.applications=Array.isArray(state.applications)?state.applications:[];
   state.goals=Array.isArray(state.goals)?state.goals:[];
   state.history=Array.isArray(state.history)?state.history:[];
+  state.settings={...guest().settings,...(state.settings||{})};
   state.deletedTaskIds=Array.isArray(state.deletedTaskIds)?state.deletedTaskIds.map(String):[];
   if(state.deletedTaskIds.length)state.tasks=state.tasks.filter(function(t){return !state.deletedTaskIds.includes(String(t.id));});
   state.user.name=profile?.full_name||user.user_metadata?.full_name||state.user.name;
