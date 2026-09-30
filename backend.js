@@ -110,7 +110,8 @@ function mergeCloudSafe(latest){
 async function saveCloud(){
   if(!sb||!session||hydratedUserId!==session.user.id)return;
   var userId=session.user.id;
-  cloudSaveQueue=cloudSaveQueue.then(async function(){
+  // Never let one failed network save poison the queue for every later save.
+  cloudSaveQueue=cloudSaveQueue.catch(function(e){console.error("Life Reset previous cloud save failed; continuing queue:",e);}).then(async function(){
     var localSnapshot=cloneLR(state);
     var baselineSnapshot=cloneLR(cloudBaseline||guest());
     var latestRes=await sb.from("life_data").select("data").eq("user_id",userId).maybeSingle();
