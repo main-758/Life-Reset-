@@ -95,7 +95,10 @@ async function saveCloud(){
     var latestRes=await sb.from("life_data").select("data").eq("user_id",userId).maybeSingle();
     if(latestRes.error)throw latestRes.error;
     var latest=latestRes.data?.data||guest();
+    // Never let a queued save write an older snapshot after the user has edited again.
+    if(!sameLR(state,localSnapshot))return;
     var snapshot=mergeCloudSafe(latest);
+    if(!sameLR(state,localSnapshot))return;
     var r=await sb.from("life_data").upsert({user_id:userId,data:snapshot,updated_at:new Date().toISOString()},{onConflict:"user_id"});
     if(r.error)throw r.error;
     if(sameLR(state,localSnapshot) && sameLR(cloudBaseline,baselineSnapshot)){
